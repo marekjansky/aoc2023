@@ -1,4 +1,4 @@
-use std::{collections::HashMap, cell::Cell};
+use std::{collections::HashMap, cell::Cell, intrinsics::mir::Len};
 
 fn main() {
     let input = include_str!("./input.txt");
@@ -14,89 +14,66 @@ enum CellType {
     Symbol
 }
 
-#[allow(dead_code)]
-fn process1(input : &str) -> String {
+fn gen_surrounding(x:u32, y:u32, x_dim : u32, y_dim : u32) -> Vec<(u32, u32)> {
+    let mut test_indicies : Vec<(u32, u32)> = Vec::new();
 
-    let mut game_sum = 0;
-
-    let mut schematic_map: HashMap<(i32, i32), CellType> = HashMap::new();
-    
-    let y_dim = input.lines().count() as i32;
-    let x_dim = input.lines().next().unwrap().len() as i32;
-
-    let mut chars : Vec<Vec<char>> = Vec::new();
-
-    for (iy, line) in input.lines().enumerate(){
-        let mut row: Vec<char> = Vec::new();
-
-        for (ix, char) in line.chars().enumerate(){
-            let idx : i32 = ix.try_into().unwrap();
-            let idy : i32 = iy.try_into().unwrap();
-            row.push(char);
-
-            if char.is_numeric() {
-                schematic_map.insert((idy, idx), CellType::Number);
-            } else if char == '.' {
-                // Empty space                
-                schematic_map.insert((idy, idx), CellType::Void);
-
-            } else {
-                // Schematic symbol
-                schematic_map.insert((idy, idx), CellType::Symbol);
-            }
-        }
-        
-        chars.push(row);
-    }
-
-    let mut valid_numbers: Vec<String> = Vec::new();
-
-    let mut test_indicies : Vec<(i32, i32)> = Vec::new();
-
-    for dy in -1..1{
-        for dx in -1..1{
-            if dy != 0 && dx != 0 {
-                test_indicies.push((dy, dx));
-            }
-        }
-    }
-
-
-    for ((iy, ix), cell) in &schematic_map {
-        // println!("{ix}, {iy}: {cell:?}");
-        if *cell == CellType::Symbol {
-            for (dy, dx) in &test_indicies {
-                let new_x = (*ix as i32) + dx;
-                let new_y = (*iy as i32) + dy;
-                if new_x < x_dim && new_y < y_dim && new_y >= 0 && new_x >= 0 {
-                    if schematic_map.get(&(new_y, new_x)).unwrap() == &CellType::Number {
-                        // jackpot
-                        // collect all numbers
-                        let mut number = String::from(chars[new_y as usize][new_x as usize]);
-                        for index in new_x..x_dim {
-                            let znak = chars[new_y as usize][index as usize];
-                            if znak.is_numeric() {
-                                number.push(znak);
-                            } else {
-                                break;
-                            }
-                        }
-                        for index in new_x..0 {
-                            let znak = chars[new_y as usize][index as usize];
-                            if znak.is_numeric() {
-                                number.insert(0,znak);
-                            } else {
-                                break;
-                            }
-                        }
-
-                        println!("{number}");
-                    }
+    for dy in -1..2{
+        for dx in -1..2{
+            if dy != 0 || dx != 0 {
+                let new_x = (x as i32) + dx;
+                let new_y = (y as i32) + dy;
+                if new_x < x_dim as i32 && new_y < y_dim as i32 && new_y >= 0 && new_x >= 0 {
+                    test_indicies.push((new_y as u32, new_x as u32));
                 }
             }
         }
     }
 
+    test_indicies
+}
+
+#[allow(dead_code)]
+fn process1(input : &str) -> String {
+
+    let mut game_sum = 0;
+
+    // let mut schematic_map: HashMap<(i32, i32), CellType> = HashMap::new();
+
+
+    let y_dim = input.lines().count() as u32;
+    let x_dim = input.lines().next().unwrap().len() as u32;
+    
+    let mut valid_numbers: Vec<String> = Vec::new();
+
+    let mut chars : Vec<char> = Vec::new();
+
+    for (iy, line) in input.lines().enumerate(){
+
+        for (ix, char) in line.chars().enumerate(){
+            chars.push(char);            
+        }
+    }
+
+    for iy in 0..chars.len() {
+        for ix in 0..chars.first().unwrap().len(){ 
+            let idx = ix as u32;
+            let idy = iy as u32;
+            let character = chars[idy*x_dim+idx];
+            if !char.is_numeric() || char == '.' {
+                // is symbol
+                //check surroundings
+                for (y, x) in gen_surrounding(idx, idy, x_dim, y_dim) {
+                    input.lines().
+                }
+            }
+        }        
+    }
+
+
+    dbg!(test_indicies);
+
+
+    
     game_sum.to_string()
 }
 
