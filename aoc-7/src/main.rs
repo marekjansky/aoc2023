@@ -2,7 +2,7 @@ use std::{collections::HashMap,cmp::Ordering};
 
 fn main() {
     let input = include_str!("./input.txt");
-    let output = process1(input);
+    let output = process2(input);
     println!("Result of computation: {output}");
 }
 
@@ -19,13 +19,13 @@ enum HandType {
 
 fn score_hand(cards: &str) -> HandType {
 
-    let char_counts = cards
+    let mut char_counts = cards
         .chars()
         .fold(HashMap::new(), |mut acc: HashMap<char, i32>, value|{
             *acc.entry(value).or_insert(0) += 1;
             acc
-    });
-    
+    });    
+        
     match char_counts.len() {
         1 => HandType::FiveOfaKind,
         2 => {
@@ -51,16 +51,16 @@ fn score_hand(cards: &str) -> HandType {
 fn cmp_hands(hand1:&(&str, u32, HandType), hand2:&(&str, u32, HandType)) -> Ordering {
         
     let cards_lut: HashMap<char, i32> =
-        [('2', 1),
-        ('3', 2),
-        ('4', 3),
-        ('5', 4),
-        ('6', 5),
-        ('7', 6),
-        ('8', 7),
-        ('9', 8),
-        ('T', 9),
-        ('J', 10),
+        [('2', 2),
+        ('3', 3),
+        ('4', 4),
+        ('5', 5),
+        ('6', 6),
+        ('7', 7),
+        ('8', 8),
+        ('9', 9),
+        ('T', 10),
+        ('J', 1),
         ('Q', 11),
         ('K', 12),
         ('A', 13)]
@@ -117,17 +117,86 @@ fn process1(input : &str) -> String {
     score.to_string()
 }
 
+fn score_hand2(cards: &str) -> HandType {
+
+    let mut char_counts = cards
+        .chars()
+        .fold(HashMap::new(), |mut acc: HashMap<char, i32>, value|{
+            *acc.entry(value).or_insert(0) += 1;
+            acc
+    });
+    
+    dbg!(&char_counts);
+
+    let j_score = match char_counts.remove(&'J') {
+        Some(x) => x,
+        None => 0
+    };
+
+    if char_counts.is_empty(){
+        char_counts.insert('A', 5);
+    } else {
+        let max_el = char_counts.iter().max_by(|el1, el2|{
+            el1.1.cmp(el2.1)
+        }).unwrap().0.clone();
+    
+        char_counts.entry(max_el).and_modify(|element| *element += j_score);
+    }
+    
+    match char_counts.len() {
+        1 => HandType::FiveOfaKind,
+        2 => {
+            if char_counts.values().any(|val| *val == 4) {
+                HandType::FourOfaKind
+            } else {
+                HandType::FullHouse
+            }
+        },
+        3 => {
+            if char_counts.values().any(|val| *val == 3) {
+                HandType::ThreeOfaKind
+            } else {
+                HandType::TwoPair
+            }
+        },
+        4 => HandType::OnePair,
+        5 => HandType::HighCard,
+        _ => panic!()
+    }
+}
+
 #[allow(dead_code)]
 fn process2(input : &str) -> String {
-
     
     let lines = input
-        .lines()
-        .map(|line|{
-            line.split_ascii_whitespace()
-        });
+        .lines();
 
-    "".to_string()
+    let mut hands = lines
+        .map(|line|{
+            let cards = line.split_ascii_whitespace().nth(0).unwrap();
+            let bid: u32 = line.split_ascii_whitespace().nth(1).unwrap().parse().unwrap();
+            (cards, bid)
+        })
+        .map(|(cards, bid)| {
+            (cards, bid, score_hand2(cards))
+        })
+        .collect::<Vec<_>>();
+
+    hands.sort_by(|game1, game2| {
+        cmp_hands(game1, game2)
+    });
+
+    let score = hands
+        .iter()
+        .enumerate()
+        .fold(0u32, |acc, (idx, val)| {
+            acc + val.1 * (idx as u32 + 1)
+    });
+
+    dbg!(&hands);
+
+    score.to_string()
+
 }
 
 
@@ -148,8 +217,12 @@ QQQJA 483";
 
     #[test]
     fn test_process2() {
-        let input = "";
-        let exp_output = "";
+        let input = "32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483";
+        let exp_output = "5905";
         assert_eq!(exp_output, process2(input));
     }
 
