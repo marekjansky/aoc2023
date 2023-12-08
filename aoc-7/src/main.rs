@@ -1,4 +1,5 @@
 use std::{collections::HashMap,cmp::Ordering};
+use itertools::Itertools;
 
 fn main() {
     let input = include_str!("./input.txt");
@@ -19,7 +20,7 @@ enum HandType {
 
 fn score_hand(cards: &str) -> HandType {
 
-    let mut char_counts = cards
+    let char_counts = cards
         .chars()
         .fold(HashMap::new(), |mut acc: HashMap<char, i32>, value|{
             *acc.entry(value).or_insert(0) += 1;
@@ -119,12 +120,7 @@ fn process1(input : &str) -> String {
 
 fn score_hand2(cards: &str) -> HandType {
 
-    let mut char_counts = cards
-        .chars()
-        .fold(HashMap::new(), |mut acc: HashMap<char, i32>, value|{
-            *acc.entry(value).or_insert(0) += 1;
-            acc
-    });
+    let mut char_counts = cards.chars().counts();
     
     dbg!(&char_counts);
 
