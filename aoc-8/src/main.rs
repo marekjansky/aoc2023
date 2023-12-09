@@ -163,7 +163,6 @@ ZZZ = (ZZZ, ZZZ)";
 XXX = (XXX, XXX)";
         let exp_output = "6";
         assert_eq!(exp_output, process2(input));
-        panic!();
     }
 
 }
