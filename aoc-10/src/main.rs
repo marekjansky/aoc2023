@@ -1,10 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 
-
-
 fn main() {
     let input = include_str!("./input.txt");
-    let output = process1(input);
+    let output = process2(input);
     println!("Result of computation: {output}");
 }
 
@@ -173,8 +171,141 @@ fn process1(input : &str) -> String {
 
 #[allow(dead_code)]
 fn process2(input : &str) -> String {
-    _ = input;
-    "".to_string()
+    
+    let map: HashMap<(i32, i32), CellType> = input
+        .lines()
+        .enumerate()
+        .flat_map(|(idy, line)| {
+            line.chars().enumerate().map(move |(idx, ch)| {
+                ((idx.clone() as i32, idy.clone() as i32), CellType::from(ch))
+            })
+        })
+        .filter(|el| {
+            el.1 != CellType::None
+        })
+        .collect::<HashMap<(i32, i32), CellType>>();
+
+    // Only one start point is in the map
+    let start = map
+        .iter()
+        .find(|el| {*el.1 == CellType::Start})
+        .unwrap();
+
+    let mut graph: HashMap<(i32, i32), Vec<(i32, i32)>> = HashMap::new();
+
+    // Generate graph
+    for ((posx, posy), kind) in map.iter() {
+        for new_pos in gen_adjacent(*kind) {
+            let new_idx = match new_pos {
+                Position::East => (posx + 1, *posy),
+                Position::West => (posx - 1, *posy),
+                Position::North => (*posx, posy - 1),
+                Position::South => (*posx, posy + 1)
+            };
+
+            if map.contains_key(&new_idx) {
+                graph.entry((*posx, *posy)).or_insert(Vec::new()).push(new_idx);
+            }
+        }
+    }
+
+    // dbg!(&graph);
+
+    let mut visited: Vec<(i32, i32)> = Vec::new();
+    let mut to_visit: VecDeque<(i32, i32)> = VecDeque::new();
+    to_visit.push_front(*start.0);
+
+    while !to_visit.is_empty() {
+        let visiting: (i32, i32) = to_visit.pop_front().unwrap();
+
+        let links = graph.get(&visiting).unwrap();
+        
+        if visited.contains(&visiting) {
+            // println!("Already visited this");
+            break;
+        } else {
+            visited.push(visiting);
+        }
+
+        for link in links {
+            if !visited.contains(link) {
+                to_visit.push_front(*link);
+            }
+        }
+    }
+
+    // Cycle is stored in visited
+    // Now we need to calculate the area that the cycle encloses
+
+    let min_x = *visited.iter().map(|(x, _y)|{
+        x
+    }).min().unwrap();
+
+    let max_x = *visited.iter().map(|(x, _y)|{
+        x
+    }).max().unwrap();
+
+    let min_y = *visited.iter().map(|(_x, y)|{
+        y
+    }).min().unwrap();
+
+    let max_y = *visited.iter().map(|(_x, y)|{
+        y
+    }).max().unwrap();
+
+    // let x_size = max_x - min_x;
+    // let y_size = max_y - min_y;
+
+    // let visited_set : HashSet<(i32, i32)> = visited.iter().cloned().collect();
+
+    // let point_map = (min_y..=max_y)
+    //     .flat_map(|y| {
+    //         (min_x..=max_x).map(move |x|{
+    //             (x, y)
+    //         })
+    //     })
+    //     .collect::<HashSet<_>>();
+
+    // let points_to_explore = point_map.difference(&visited_set);
+    
+    // for point in visited {
+    //     let cell_type = map.get(&point).unwrap();
+
+    // }
+
+    let mut count = 0;
+
+    for idy in min_y..=max_y {
+        let mut crossings = 0;
+        for idx in min_x..=max_x {
+            if visited.contains(&(idx, idy)) {
+                match map.get(&(idx, idy)).unwrap() {
+                    CellType::Vertical => {
+                        crossings += 1;
+                    },
+                    CellType::Start => {
+                        crossings += 1;
+                    },
+                    CellType::SouthEast => {
+                        crossings += 1;
+                    },
+                    CellType::SouthWest => {
+                        crossings += 1;
+                    },
+                    _ => {}
+                }
+
+            } else {
+                if crossings % 2 != 0 {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+
+    
+    (count).to_string()
 }
 
 #[cfg(test)]
