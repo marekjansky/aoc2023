@@ -3,14 +3,7 @@ use std::collections::{HashMap, VecDeque};
 
 
 fn main() {
-    // let input = include_str!("./input.txt");
-     
-    let input = ".....
-.S-7.
-.|.|.
-.L-J.
-.....";
-
+    let input = include_str!("./input.txt");
     let output = process1(input);
     println!("Result of computation: {output}");
 }
@@ -39,8 +32,8 @@ impl From<char> for CellType {
     fn from(value: char) -> Self {
         match value {
             'S' => Self::Start,
-            '|' => Self::Horizontal,
-            '-' => Self::Vertical,
+            '|' => Self::Vertical,
+            '-' => Self::Horizontal,
             '7' => Self::SouthWest,
             'F' => Self::SouthEast,
             'J' => Self::NorthWest,
@@ -50,19 +43,19 @@ impl From<char> for CellType {
     }
 }
 
-impl CellType {
-    fn connects(&self, other: &CellType, relative_position : Position) -> bool {
-        match self {
-            Self::Horizontal  
-            Self::Vertical =>
-            Self::SouthWest =>
-            Self::SouthEast =>
-            Self::NorthWest =>
-            Self::NorthEast =>,
-            _ => false
-        }
-    }
-}
+// impl CellType {
+//     fn connects(&self, other: &CellType, relative_position : Position) -> bool {
+//         match self {
+//             Self::Horizontal  
+//             Self::Vertical =>
+//             Self::SouthWest =>
+//             Self::SouthEast =>
+//             Self::NorthWest =>
+//             Self::NorthEast =>,
+//             _ => false
+//         }
+//     }
+// }
 
 // #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 // struct Cell {
@@ -71,18 +64,43 @@ impl CellType {
 //     y : u32
 // }
 
-fn gen_adjacent(x:i32, y: i32, cell : CellType) -> Vec<(i32, i32)> {
+fn gen_adjacent(cell : CellType) -> Vec<Position> {
+    // match cell {
+    //     CellType::Vertical =>   vec![(x, y+1),(x, y-1)],
+    //     CellType::Horizontal => vec![(x-1, y),(x+1, y)],
+    //     CellType::NorthEast =>  vec![(x+1, y),(x, y+1)],
+    //     CellType::NorthWest =>  vec![(x-1, y),(x, y+1)],
+    //     CellType::SouthEast =>  vec![(x+1, y),(x, y-1)],
+    //     CellType::SouthWest =>  vec![(x-1, y),(x, y-1)],
+    //     CellType::None =>       vec![],
+    //     _ => vec![(x-1, y),(x+1, y),(x, y+1),(x, y-1)]
+    // }
+    use Position::*;
+
     match cell {
-        CellType::Vertical =>   vec![(x, y+1),(x, y-1)],
-        CellType::Horizontal => vec![(x-1, y),(x+1, y)],
-        CellType::NorthEast =>  vec![(x+1, y),(x, y+1)],
-        CellType::NorthWest =>  vec![(x-1, y),(x, y+1)],
-        CellType::SouthEast =>  vec![(x+1, y),(x, y-1)],
-        CellType::SouthWest =>  vec![(x-1, y),(x, y-1)],
+        CellType::Vertical =>   vec![North, South],
+        CellType::Horizontal => vec![West,  East],
+        CellType::NorthEast =>  vec![North, East],
+        CellType::NorthWest =>  vec![North, West],
+        CellType::SouthEast =>  vec![South, East],
+        CellType::SouthWest =>  vec![South, West],
         CellType::None =>       vec![],
-        _ => vec![(x-1, y),(x+1, y),(x, y+1),(x, y-1)]
+        _ => vec![South, North, West, East]
     }
 }
+
+// fn gen_possible(cell : CellType) -> Vec<CellType> {
+//     match cell {
+//         CellType::Vertical =>   vec![CellType::Vertical, CellType::No],
+//         CellType::Horizontal => vec![(x-1, y),(x+1, y)],
+//         CellType::NorthEast =>  vec![(x+1, y),(x, y+1)],
+//         CellType::NorthWest =>  vec![(x-1, y),(x, y+1)],
+//         CellType::SouthEast =>  vec![(x+1, y),(x, y-1)],
+//         CellType::SouthWest =>  vec![(x-1, y),(x, y-1)],
+//         CellType::None =>       vec![],
+//         _ => vec![(x-1, y),(x+1, y),(x, y+1),(x, y-1)]
+//     }
+// }
 
 #[allow(dead_code)]
 fn process1(input : &str) -> String {
@@ -106,41 +124,51 @@ fn process1(input : &str) -> String {
         .find(|el| {*el.1 == CellType::Start})
         .unwrap();
 
-    let mut cycle: VecDeque<(i32, i32)> = VecDeque::new();
+    let mut graph: HashMap<(i32, i32), Vec<(i32, i32)>> = HashMap::new();
 
-    cycle.push_front(*start.0);
-
-    loop {
-        let last = *cycle.front().unwrap();
-        dbg!(&cycle);
-        
-        for pos in gen_adjacent(last.0, last.1, *map.get(&last).unwrap()) {
-            dbg!(&pos);
-            // Filter last position
-            if cycle.get(1).unwrap_or(&(-1,-1)) == &pos { continue; }
-
-            match map.get(&pos) {
-                Some(val) => {
-                    // Validate if the cell connects
-
-                    cycle.push_front(pos);
-                    break;
-                }
-                None => {continue;}
+    // Generate graph
+    for ((posx, posy), kind) in map.iter() {
+        for new_pos in gen_adjacent(*kind) {
+            let new_idx = match new_pos {
+                Position::East => (posx + 1, *posy),
+                Position::West => (posx - 1, *posy),
+                Position::North => (*posx, posy - 1),
+                Position::South => (*posx, posy + 1)
             };
-        }
-        
-        if *cycle.front().unwrap() == *start.0 {
-            break;
+
+            if map.contains_key(&new_idx) {
+                graph.entry((*posx, *posy)).or_insert(Vec::new()).push(new_idx);
+            }
         }
     }
 
-    println!("{cycle:?}");
+    // dbg!(&graph);
 
-    // parse input
-    // Find cycle
+    let mut visited: Vec<(i32, i32)> = Vec::new();
+    let mut to_visit: VecDeque<(i32, i32)> = VecDeque::new();
+    to_visit.push_front(*start.0);
+
+    while !to_visit.is_empty() {
+        let visiting: (i32, i32) = to_visit.pop_front().unwrap();
+
+        let links = graph.get(&visiting).unwrap();
+        
+        if visited.contains(&visiting) {
+            // println!("Already visited this");
+            break;
+        } else {
+            visited.push(visiting);
+        }
+
+        for link in links {
+            if !visited.contains(link) {
+                to_visit.push_front(*link);
+            }
+        }
+    }
+
     
-    (cycle.len() / 2).to_string()
+    (visited.len() / 2).to_string()
 }
 
 #[allow(dead_code)]
@@ -164,7 +192,6 @@ mod tests {
         assert_eq!(exp_output, process1(input));
     }
 
-    #[ignore]
     #[test]
     fn test_process12() {
         let input = "..F7.
@@ -176,14 +203,57 @@ LJ...";
         assert_eq!(exp_output, process1(input));
     }
 
-    #[ignore]
     #[test]
     fn test_process2() {
-        let input =  "0 3 6 9 12 15
-    1 3 6 10 15 21
-    10 13 16 21 30 45";
-        let exp_output = "2";
+        let input = "FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
+
+        let exp_output = "10";
         assert_eq!(exp_output, process2(input));
     }
+
+    #[test]
+    fn test_process22() {
+        let input = ".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
+
+        let exp_output = "8";
+        assert_eq!(exp_output, process2(input));
+    }
+
+    #[test]
+    fn test_process23() {
+        let input = 
+"...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........";
+
+        let exp_output = "4";
+        assert_eq!(exp_output, process2(input));
+    }
+
+
 
 }
