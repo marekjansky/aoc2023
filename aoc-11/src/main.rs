@@ -1,9 +1,9 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use itertools::Itertools;
 
 fn main() {
     let input = include_str!("./input.txt");
-    let output = process1(input);
+    let output = process2(input);
     println!("Result of computation: {output}");
 }
 
@@ -123,18 +123,20 @@ fn process2(input : &str) -> String {
         let y_start = from.1.min(to.1);
         let y_end = from.1.max(to.1);
 
+        let expansion_ratio = 1_000_000;
+
         let space_x = empty_cols.iter().filter(|col| { 
-            (**col as i32) > x_start && (**col as i32) < x_end
-         }).count() * 10;
+            (**col as i32) >= x_start && (**col as i32) <= x_end
+         }).count();
 
          let space_y = empty_rows.iter().filter(|row| { 
-            (**row as i32) > y_start && (**row as i32) < y_end
-         }).count() * 10;
+            (**row as i32) >= y_start && (**row as i32) <= y_end
+         }).count();
 
-        steps_x + steps_y + space_x as u32 + space_y as u32
+        steps_x as u64 + steps_y as u64 + ((space_x as u64 + space_y as u64) * (expansion_ratio-1))
     });
 
-    distances.sum::<u32>().to_string()
+    distances.sum::<u64>().to_string()
 }
 
 #[cfg(test)]
